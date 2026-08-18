@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 
 st.set_page_config(
     page_title="مشاور هوشمند املاک",
@@ -11,7 +12,7 @@ st.markdown("""
 
 @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
 
-* {
+html, body, [class*="css"], .stApp {
     font-family: 'Vazirmatn', sans-serif !important;
     direction: rtl;
 }
@@ -97,6 +98,7 @@ div[data-testid="stAlert"] {
 
 </style>
 """, unsafe_allow_html=True)
+
 st.markdown("<h1>🏠 مشاور هوشمند املاک</h1>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>مشخصات ملک خود را وارد کنید تا قیمت پیشنهادی را ببینید</div>", unsafe_allow_html=True)
 
@@ -108,6 +110,8 @@ user_input = st.text_area(
 
 if st.button("پیش‌بینی قیمت"):
     if user_input.strip():
+        with st.spinner("در حال تحلیل..."):
+            time.sleep(1.5)  # اینجا بعداً منطق واقعی مدل/پیش‌بینی جایگزین می‌شه
         st.success("مشخصات با موفقیت دریافت شد ✅")
         st.write("**پیام شما:**", user_input)
     else:
