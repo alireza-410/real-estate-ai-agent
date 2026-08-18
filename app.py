@@ -134,7 +134,7 @@ st.markdown("<div class='subtitle'>مشخصات ملک خود را وارد کن
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = None  # آرگومان history برای run_agent (context مکالمه)
 if "messages" not in st.session_state:
-    st.session_state.messages = []  # فقط برای نمایش در UI
+    st.session_state.messages = []  
 
 if st.session_state.messages:
     st.markdown("<div class='chat-wrap'>", unsafe_allow_html=True)
@@ -151,7 +151,7 @@ user_input = st.text_area(
 
 if st.button("پیش‌بینی قیمت"):
     if user_input.strip():
-        st.session_state.messages.append({"role": "user", "content": user_input})
+        st.session_state.messages.append({"role": "user"})
         with st.spinner("در حال تحلیل قیمت..."):
             try:
                 answer, history = run_agent(user_input, st.session_state.chat_history)
