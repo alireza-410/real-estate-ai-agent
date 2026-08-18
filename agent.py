@@ -82,6 +82,30 @@ MODEL_FEATURES_ORDER = [
 PRICE_ROUNDING_STEP = 10_000_000
 
 
+def format_price_toman(amount: float) -> str:
+    """
+    قیمت را به دو شکل برمی‌گرداند و در یک رشته ترکیب می‌کند:
+    هم عدد جداشده با ویرگول (16,500,000,000 تومان)
+    و هم به‌صورت میلیارد/میلیون (16 میلیارد و 500 میلیون تومان)
+    """
+    amount = int(round(amount))
+    numeric_str = f"{amount:,} تومان"
+
+    billion, remainder = divmod(amount, 1_000_000_000)
+    million = remainder // 1_000_000
+
+    words_parts = []
+    if billion:
+        words_parts.append(f"{billion} میلیارد")
+    if million:
+        words_parts.append(f"{million} میلیون")
+
+    if words_parts:
+        words_str = " و ".join(words_parts) + " تومان"
+        return f"{numeric_str} ({words_str})"
+    return numeric_str
+
+
 def calculate_property_feature_score(property_data: dict, has_elevator: int, floor: int) -> float:
     score = 0
     for user_key, weight_key in OPTIONAL_FEATURE_KEY_MAP.items():
@@ -144,6 +168,7 @@ def predict_price(property_data: dict) -> dict:
 
     predicted_price = best_gb_model.predict(model_input)[0]
 
+    # گرد کردن به نزدیک‌ترین ۱۰ میلیون تومان تا عدد خروجی ساده و قابل‌فهم باشد
     predicted_price = round(predicted_price / PRICE_ROUNDING_STEP) * PRICE_ROUNDING_STEP
 
     missing_optional = [
@@ -154,6 +179,7 @@ def predict_price(property_data: dict) -> dict:
     return {
         "status": "ok",
         "predicted_price": float(predicted_price),
+        "predicted_price_display": format_price_toman(predicted_price),
         "property_feature_score": float(score),
         "building_age": int(سن_ساختمان),
         "missing_optional_info": missing_optional,
