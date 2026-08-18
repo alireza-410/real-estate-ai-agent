@@ -1,5 +1,5 @@
 import streamlit as st
-import time
+from agent import run_agent
 
 st.set_page_config(
     page_title="مشاور هوشمند املاک",
@@ -96,11 +96,52 @@ div[data-testid="stAlert"] {
     font-size: 0.9rem;
 }
 
+.chat-wrap {
+    margin-bottom: 1.8rem;
+}
+
+.bubble {
+    padding: 12px 16px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    font-size: 0.92rem;
+    line-height: 1.9;
+    max-width: 85%;
+}
+
+.bubble.user {
+    background: #eef0ff;
+    color: #2b2b40;
+    margin-left: auto;
+    border-bottom-left-radius: 4px;
+}
+
+.bubble.assistant {
+    background: #ffffff;
+    color: #2b2b40;
+    border: 1px solid #ececf1;
+    margin-right: auto;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("<h1>🏠 مشاور هوشمند املاک</h1>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>مشخصات ملک خود را وارد کنید تا قیمت پیشنهادی را ببینید</div>", unsafe_allow_html=True)
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = None  # آرگومان history برای run_agent (context مکالمه)
+if "messages" not in st.session_state:
+    st.session_state.messages = []  # فقط برای نمایش در UI
+
+if st.session_state.messages:
+    st.markdown("<div class='chat-wrap'>", unsafe_allow_html=True)
+    for msg in st.session_state.messages:
+        role_class = "user" if msg["role"] == "user" else "assistant"
+        st.markdown(f"<div class='bubble {role_class}'>{msg['content']}</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 user_input = st.text_area(
     "مشخصات ملک را وارد کنید:",
@@ -110,9 +151,14 @@ user_input = st.text_area(
 
 if st.button("پیش‌بینی قیمت"):
     if user_input.strip():
-        with st.spinner("در حال تحلیل..."):
-            time.sleep(1.5)  # اینجا بعداً منطق واقعی مدل/پیش‌بینی جایگزین می‌شه
-        st.success("مشخصات با موفقیت دریافت شد ✅")
-        st.write("**پیام شما:**", user_input)
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        with st.spinner("در حال تحلیل قیمت..."):
+            try:
+                answer, history = run_agent(user_input, st.session_state.chat_history)
+                st.session_state.chat_history = history
+                st.session_state.messages.append({"role": "assistant", "content": answer})
+            except Exception as e:
+                st.error(f"خطا در تحلیل: {e}")
+        st.rerun()
     else:
         st.warning("لطفاً مشخصات ملک را وارد کنید.")
