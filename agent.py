@@ -1,23 +1,3 @@
-"""
-agent.py
---------
-منطق اصلی Agent مشاور هوشمند املاک.
-
-این ماژول شامل:
-    - FEATURE_WEIGHTS و نگاشت امکانات اختیاری
-    - بارگذاری مدل house_price_model.pkl
-    - check_missing_required
-    - predict_price
-    - تعریف tools برای Function Calling
-    - system_prompt تخصصی مشاور املاک
-    - run_agent (نقطه ورود Agent)
-
-نکته: منطق موجود در Notebook اصلی (agent.ipynb) بدون تغییر معنایی
-به این فایل منتقل شده است. تنها تغییرات مربوط به سازگاری با اجرای
-مستقل (خارج از Notebook) هستند، مثل مسیر مطلق فایل مدل و خواندن
-API Key از متغیرهای محیطی/.env به‌جای Hard-code.
-"""
-
 import os
 import json
 from pathlib import Path
@@ -27,9 +7,6 @@ import joblib
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# ---------------------------------------------------------------------------
-# راه‌اندازی کلاینت LLM (OpenRouter)
-# ---------------------------------------------------------------------------
 load_dotenv()
 
 _api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -44,9 +21,6 @@ client = OpenAI(
     api_key=_api_key,
 )
 
-# ---------------------------------------------------------------------------
-# FEATURE_WEIGHTS و نگاشت‌های مربوط به امکانات ملک
-# ---------------------------------------------------------------------------
 FEATURE_WEIGHTS = {
     "پارکینگ": 3,
     "انباری": 2,
@@ -123,19 +97,12 @@ def calculate_property_feature_score(property_data: dict, has_elevator: int, flo
     return max(score, 0)
 
 
-# ---------------------------------------------------------------------------
-# بارگذاری مدل Machine Learning
-# ---------------------------------------------------------------------------
-# مسیر مبتنی بر محل فایل تا وابسته به Working Directory اجرای برنامه نباشد.
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "house_price_model.pkl"
 
 best_gb_model = joblib.load(MODEL_PATH)
 
 
-# ---------------------------------------------------------------------------
-# بررسی اطلاعات ناقص و پیش‌بینی قیمت
-# ---------------------------------------------------------------------------
 def check_missing_required(property_data: dict) -> list:
     missing = []
     for field in REQUIRED_FIELDS:
@@ -192,9 +159,6 @@ def predict_price(property_data: dict) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
-# تعریف Tool برای Function Calling
-# ---------------------------------------------------------------------------
 tools = [
     {
         "type": "function",
@@ -246,9 +210,6 @@ tools = [
     }
 ]
 
-# ---------------------------------------------------------------------------
-# System Prompt تخصصی مشاور املاک
-# ---------------------------------------------------------------------------
 system_prompt = {
     "role": "system",
     "content": (
@@ -301,10 +262,6 @@ system_prompt = {
     ),
 }
 
-
-# ---------------------------------------------------------------------------
-# نقطه ورود Agent
-# ---------------------------------------------------------------------------
 def run_agent(user_message: str, history: list | None = None):
     """
     یک چرخه‌ی کامل: پیام کاربر -> LLM -> (در صورت نیاز) اجرای predict_price -> پاسخ نهایی.
@@ -344,13 +301,8 @@ def run_agent(user_message: str, history: list | None = None):
         messages.append(final_message)
         return final_message.content, messages
 
-    # اگر مدل بدون Function Call جواب داد (مثلاً برای پرسیدن اطلاعات ناقص)
     return message.content, messages
 
-
-# ---------------------------------------------------------------------------
-# تست دستی (فقط هنگام اجرای مستقیم این فایل، نه هنگام import)
-# ---------------------------------------------------------------------------
 if __name__ == "__main__":
     answer, history = run_agent(
         "یک آپارتمان 120 متری در عظیمیه، ساخت 1400، دو خواب، طبقه سوم از پنج طبقه، "
