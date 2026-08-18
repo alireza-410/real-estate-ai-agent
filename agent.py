@@ -79,6 +79,8 @@ MODEL_FEATURES_ORDER = [
     "Property Feature Score",
 ]
 
+PRICE_ROUNDING_STEP = 10_000_000
+
 
 def calculate_property_feature_score(property_data: dict, has_elevator: int, floor: int) -> float:
     score = 0
@@ -90,7 +92,6 @@ def calculate_property_feature_score(property_data: dict, has_elevator: int, flo
     floor_for_elevator = max(floor, 0)
     elevator_value = has_elevator * floor_for_elevator
     elevator_penalty = (1 - has_elevator) * floor_for_elevator
-
     score += elevator_value
     score -= elevator_penalty
 
@@ -99,7 +100,6 @@ def calculate_property_feature_score(property_data: dict, has_elevator: int, flo
 
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "house_price_model.pkl"
-
 best_gb_model = joblib.load(MODEL_PATH)
 
 
@@ -128,7 +128,6 @@ def predict_price(property_data: dict) -> dict:
     طبقه_کل_ساختمان = property_data["طبقه کل ساختمان"]
 
     سن_ساختمان = BASE_YEAR - سال_ساخت
-
     has_elevator = 1 if property_data.get("آسانسور") else 0
     score = calculate_property_feature_score(property_data, has_elevator, طبقه_ملک)
 
@@ -144,6 +143,8 @@ def predict_price(property_data: dict) -> dict:
     }])[MODEL_FEATURES_ORDER]
 
     predicted_price = best_gb_model.predict(model_input)[0]
+
+    predicted_price = round(predicted_price / PRICE_ROUNDING_STEP) * PRICE_ROUNDING_STEP
 
     missing_optional = [
         k for k in list(OPTIONAL_FEATURE_KEY_MAP.keys()) + ["آسانسور"]
@@ -179,7 +180,6 @@ tools = [
                     "تعداد اتاق خواب": {"type": "integer"},
                     "طبقه ملک": {"type": "integer", "description": "طبقه‌ای که واحد در آن قرار دارد"},
                     "طبقه کل ساختمان": {"type": "integer", "description": "تعداد کل طبقات ساختمان"},
-
                     "پارکینگ": {"type": "boolean"},
                     "انباری": {"type": "boolean"},
                     "بالکن": {"type": "boolean"},
@@ -214,53 +214,43 @@ system_prompt = {
     "role": "system",
     "content": (
         "تو یک مشاور املاک هوشمند هستی و باید کاملاً طبیعی و روان به زبان فارسی با کاربر صحبت کنی. "
-
         "هدف اصلی تو کمک به کاربر برای برآورد قیمت یک ملک است. "
-
         "قانون بسیار مهم: "
         "هرگز قیمت ملک را خودت حدس نزن و هیچ عددی برای قیمت تولید نکن. "
         "قیمت فقط و فقط باید از نتیجه تابع predict_price گرفته شود. "
-
         "همچنین هرگز Property Feature Score را خودت محاسبه نکن. "
         "تو فقط باید اطلاعات خام ملک را از صحبت کاربر استخراج کنی و به تابع predict_price بدهی. "
-
         "اطلاعات حیاتی موردنیاز برای پیش‌بینی عبارت‌اند از: "
         "متراژ، ناحیه، سال ساخت، تعداد اتاق خواب، طبقه ملک و طبقه کل ساختمان. "
-
         "اگر هرکدام از این اطلاعات وجود نداشت، خالی بود یا مشخص نبود، "
         "نباید تابع predict_price را صدا بزنی. "
         "در عوض، به‌صورت طبیعی و کوتاه از کاربر بخواه اطلاعات ناقص را وارد کند. "
-
         "اطلاعات مربوط به امکانات ملک مانند پارکینگ، انباری، بالکن، نورگیر، "
         "نوساز، بازسازی‌شده، سند تک‌برگ، اتاق مستر، کولر گازی، پکیج، "
         "استخر، جکوزی، روف‌گاردن، نگهبانی، سرایدار و آسانسور اطلاعات اختیاری هستند. "
-
         "اگر بعضی از این اطلاعات توسط کاربر ارائه نشدند، "
         "نباید از کاربر برای آن‌ها سؤال اجباری بپرسی و نباید پیش‌بینی را متوقف کنی. "
         "تابع predict_price خودش اطلاعات ناقص اختیاری را مدیریت می‌کند. "
-
         "بعد از اجرای موفق predict_price، مقدار predicted_price موجود در نتیجه تابع را "
         "به‌عنوان قیمت پیش‌بینی‌شده اعلام کن. "
-        "قیمت را تغییر نده، گرد نکن و عدد دیگری جایگزین آن نکن. "
-
+        "این عدد از قبل به نزدیک‌ترین ۱۰ میلیون تومان گرد شده است؛ "
+        "آن را دقیقاً همان‌طور که هست (بدون هیچ رقم اعشار یا جزئیات اضافه) به کاربر اعلام کن، "
+        "دوباره گردش نکن و عدد دیگری جایگزینش نکن. "
         "اگر missing_optional_info در نتیجه تابع وجود داشت و خالی نبود، "
         "بعد از اعلام قیمت، به‌صورت کوتاه و طبیعی به کاربر اطلاع بده که "
         "اگر اطلاعات بیشتری درباره امکانات ملک ارائه کند، برآورد می‌تواند دقیق‌تر شود. "
-
         "اگر missing_optional_info خالی بود، درباره اطلاعات ناقص اختیاری چیزی نگو. "
-
         "اطلاعاتی که کاربر درباره ملک می‌دهد را تغییر نده. "
         "نام محله، عدد متراژ، سال ساخت، تعداد اتاق‌ها و طبقات را دقیقاً همان‌طور که "
         "کاربر گفته حفظ کن و هنگام پاسخ دادن آن‌ها را حدس نزن یا تغییر نده. "
-
         "اگر نتیجه تابع شامل property_feature_score یا building_age بود، "
         "لازم نیست این مقادیر را به کاربر نشان بدهی مگر اینکه کاربر درباره آن‌ها سؤال کند. "
-
         "پاسخ نهایی باید کوتاه، واضح، حرفه‌ای و طبیعی باشد. "
         "هدف این است که کاربر احساس کند با یک مشاور املاک هوشمند صحبت می‌کند، "
         "نه اینکه یک گزارش فنی دریافت می‌کند."
     ),
 }
+
 
 def run_agent(user_message: str, history: list | None = None):
     """
@@ -280,12 +270,10 @@ def run_agent(user_message: str, history: list | None = None):
     messages.append(message)
 
     tool_calls = message.tool_calls or []
-
     for tool_call in tool_calls:
         if tool_call.function.name == "predict_price":
             args = json.loads(tool_call.function.arguments)
             result = predict_price(args)
-
             messages.append({
                 "role": "tool",
                 "tool_call_id": tool_call.id,
@@ -302,6 +290,7 @@ def run_agent(user_message: str, history: list | None = None):
         return final_message.content, messages
 
     return message.content, messages
+
 
 if __name__ == "__main__":
     answer, history = run_agent(
