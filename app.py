@@ -7,6 +7,7 @@ st.set_page_config(
     layout="centered",
 )
 
+# ---------- استایل سفارشی ----------
 st.markdown("""
 <style>
 
@@ -96,6 +97,7 @@ div[data-testid="stAlert"] {
     font-size: 0.9rem;
 }
 
+/* حباب‌های گفتگو */
 .chat-wrap {
     margin-bottom: 1.8rem;
 }
@@ -128,19 +130,22 @@ div[data-testid="stAlert"] {
 </style>
 """, unsafe_allow_html=True)
 
+# ---------- محتوا ----------
 st.markdown("<h1>🏠 مشاور هوشمند املاک</h1>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>مشخصات ملک خود را وارد کنید تا قیمت پیشنهادی را ببینید</div>", unsafe_allow_html=True)
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = None  # آرگومان history برای run_agent (context مکالمه)
 if "messages" not in st.session_state:
-    st.session_state.messages = []  
+    st.session_state.messages = []  # فقط برای نمایش در UI
 
+# نمایش گفتگوی قبلی (اگر agent برای تکمیل اطلاعات سؤالی پرسیده بود)
 if st.session_state.messages:
     st.markdown("<div class='chat-wrap'>", unsafe_allow_html=True)
     for msg in st.session_state.messages:
-        role_class = "user" if msg["role"] == "user" else "assistant"
-        st.markdown(f"<div class='bubble {role_class}'>{msg['content']}</div>", unsafe_allow_html=True)
+        role_class = "user" if msg.get("role") == "user" else "assistant"
+        content = msg.get("content") or ""
+        st.markdown(f"<div class='bubble {role_class}'>{content}</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 user_input = st.text_area(
@@ -151,7 +156,7 @@ user_input = st.text_area(
 
 if st.button("پیش‌بینی قیمت"):
     if user_input.strip():
-        st.session_state.messages.append({"role": "user"})
+        st.session_state.messages.append({"role": "user", "content": user_input})
         with st.spinner("در حال تحلیل قیمت..."):
             try:
                 answer, history = run_agent(user_input, st.session_state.chat_history)
